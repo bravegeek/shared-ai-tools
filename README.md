@@ -1,127 +1,49 @@
-# Shared .claude Configuration
+# Shared AI Tools Configuration
 
-This directory contains Claude Code agents and shared configurations that are synced across multiple repositories using a central GitHub repository.
+This repository contains shared agents, skills, and configurations for **Claude Code** and **Gemini CLI**, synced across multiple repositories using a central repository and a sync script.
 
 ## Overview
 
-Each project's `.claude` directory is an independent git repo that pushes/pulls to a central GitHub repository, enabling synchronization of agents and settings across all your projects.
+The `sync.sh` script automates the process of injecting your shared agents and instructions into any target project, configuring them correctly for both Claude and Gemini.
 
-```
-GitHub Repo (private/shared-ai-tools)
-       ^
-       | push/pull
-       v
-project-a/.claude/
-project-b/.claude/
-```
+- **Claude Code**: Agents are synced to `.claude/agents/` and shared instructions to `.claude/shared/`.
+- **Gemini CLI**: Agents are synced as skills to `.gemini/skills/` and shared instructions to `.gemini/shared/`, with automatic `@reference` injection in `GEMINI.md`.
 
-## Initial Setup (One Time)
+## Setup and Usage
 
-1. **Create a Repository**: Create a repository on GitHub (e.g., `shared-ai-tools`).
-
-2. **Initialize Your First .claude Directory**:
-
+1. **Clone this repository**:
    ```bash
-   cd /path/to/your/project/.claude
-   git init
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/shared-ai-tools.git
-
-   # Ignore repo-specific files
-   echo "settings.local.json" > .gitignore
-
-   # Initial commit and push
-   git add agents/ shared/ .gitignore
-   git commit -m "Initial shared .claude config"
-   git push -u origin main
+   git clone https://github.com/YOUR_USERNAME/shared-ai-tools.git ~/dev/shared-ai-tools
    ```
 
-3. **Tell Parent Repo to Ignore .claude**:
-
-   Since `.claude` is its own git repo, the parent project must ignore it:
-
+2. **Sync to a project**:
+   Run the sync script and provide the path to the project you want to update:
    ```bash
-   cd /path/to/your/project
-   echo ".claude/" >> .gitignore
-   git add .gitignore
-   git commit -m "Ignore .claude directory (managed via submodule/repo)"
+   ~/dev/shared-ai-tools/sync.sh /path/to/your/project
    ```
-
-## Adding to New Projects
-
-To use your shared configuration in a new project:
-
-1. **Clone the Config**:
-
-   ```bash
-   cd /path/to/new/project
-   git clone https://github.com/YOUR_USERNAME/shared-ai-tools.git .claude
-   ```
-
-2. **Add Local Settings** (Optional/Not Synced):
-
-   ```bash
-   cat > .claude/settings.local.json << 'EOF'
-   {
-     "permissions": {
-       "allow": []
-     }
-   }
-   EOF
-   ```
-
-3. **Ignore in Parent**:
-
-   ```bash
-   echo ".claude/" >> .gitignore
-   ```
-
-## Daily Workflow
-
-### Save Changes (from any project)
-
-```bash
-cd .claude
-git add .
-git commit -m "Add/update agent X"
-git push
-```
-
-### Get Latest Changes
-
-```bash
-cd .claude
-git pull
-```
-
-## Repo-Specific Agents
-
-To create agents that stay local to one repo (not synced to GitHub):
-
-1. **Configure .gitignore**:
-   ```bash
-   cd .claude
-   echo "agents/local-*.md" >> .gitignore
-   git add .gitignore
-   git commit -m "Allow local-only agents"
-   git push
-   ```
-
-2. **Create Local Agent**:
-   Create files with the ignored prefix:
-   `touch agents/local-my-project-agent.md`
 
 ## Directory Structure
 
 ```
-.claude/
-├── agents/                    # Shared agents (synced)
+shared-ai-tools/
+├── agents/                    # Shared agents/skills (synced)
 │   ├── strategic-brainstorm-researcher.md
 │   ├── git-commit-writer.md
 │   └── ...
-├── shared/                    # Shared resources (synced)
+├── shared/                    # Shared instructions (synced)
 │   └── no-flatter-mode.md
-├── settings.local.json        # Repo-specific (ignored)
-├── .gitignore
+├── sync.sh                    # The sync utility script
 └── README.md
 ```
+
+## Daily Workflow
+
+### Update Shared Tools
+1. Edit or add files in `agents/` or `shared/` within this repository.
+2. Commit and push your changes.
+3. Run `./sync.sh <project-path>` on your target projects to pull in the updates.
+
+### Adding New Agents
+Simply create a new `.md` file in the `agents/` directory. The next time you run `sync.sh`, it will be available as:
+- A Claude agent: `memory/agent-name`
+- A Gemini skill: `activate_skill(name="agent-name")`
